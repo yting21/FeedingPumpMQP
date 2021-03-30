@@ -1,0 +1,50 @@
+//Variables
+const int pResistor = A0; // Photoresistor at Arduino analog pin A0
+float sensorValue = 0;
+
+int count = 0; // initial drop count is zero
+int totalCount = 0;
+float voltage = sensorValue * (5.0/1023.0);
+bool inPeak = false;
+int dpm = 0;
+double minVol = 0;
+double totalVol = 0;
+
+unsigned long previousMillis = 0;        // will store last time LED was updated
+const long interval = 10000;           // interval at which to blink (milliseconds)
+
+void setup() {
+  // put your setup code here, to run once:
+ pinMode(pResistor, INPUT);// Set pResistor - A0 pin as an input (optional)
+ Serial.begin(9600);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  float sensorValue = analogRead(pResistor);
+  
+  if (currentMillis - previousMillis >= interval) {
+    totalCount += count;
+    dpm = count * 6;
+    minVol = (dpm/17.00); //conversion from drops per minute to ml per minute
+    totalVol = (totalCount/17.00);
+    count = 0;
+    previousMillis = currentMillis;
+  }
+  if(voltage > 0.01) {
+    if (!inPeak)
+       {
+         count ++;
+          inPeak = true;    
+       }  
+    } else{
+ 
+      inPeak = false;
+  }
+
+  
+  Serial.println(dpm + " drips per minute");
+  Serial.println(minVol);
+  Serial.println(totalVol + " mL dispensed");
+  delay(1000);
+}
