@@ -1,0 +1,22 @@
+int LED = 13;             
+int SensorOutputPin = 2;  
+int Detect = HIGH;
+ 
+void setup() 
+{
+  pinMode(LED, OUTPUT);
+  pinMode(SensorOutputPin, INPUT);
+  digitalWrite( LED, LOW);
+  delay(1000);
+}
+void loop() {
+  Detect = digitalRead(SensorOutputPin);
+  if (Detect == LOW)
+  {  
+    digitalWrite(LED, HIGH);
+  }
+  else
+  {
+    digitalWrite(LED, LOW);
+  }
+  delay(10);
