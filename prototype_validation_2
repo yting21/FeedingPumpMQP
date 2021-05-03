@@ -1,0 +1,110 @@
+//Variables for flow sensor
+int IRSensorOutput = A1; // IR Sensor at Arduino analog pin A0
+float sensorValue = 0;
+int dpm = 0;
+double mlVol = 0;
+int totalCount = 0;
+double totalVol = 0;
+double totalAdmin = 0;
+int count = 0; // initial drop count is zero
+bool inPeak = false;
+unsigned long previousMillis = 0; // will store last time LED was updated
+const long interval = 10000; // time for 1 interval
+/*------------------------------------*/
+//Variables for stepper motor 
+#include <Stepper.h>
+const int stepsPerRev = 56; // Defines the number of steps per rotation
+// Pins entered in sequence IN1-IN3-IN2-IN4 for proper step sequence
+Stepper myStepper = Stepper(stepsPerRev, 13, 6, 12, 5);
+int stepperPos = 0;
+//declare button pins
+const int buttonPinL = 9;
+const int buttonPinR = 8;
+const int buttonPinH = 3;
+int buttonStateL = 0;
+int buttonStateR = 0;
+int buttonStateH = 0;
+/*------------------------------------*/
+//Variables for LCD screen
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27,20,4);
+void setup() {
+  //flow sensor setup
+  pinMode(IRSensorOutput, INPUT);// Set pResistor - A0 pin as an input (optional)
+  pinMode(10, OUTPUT);
+  //stepper setup
+  myStepper.setSpeed(30);
+  Serial.begin(9600);
+  //lcd setup
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("totalVol:");
+  lcd.setCursor(0,1);
+  lcd.print("totalAdmin:");
+  Serial.begin(9600);
+}
+void loop() {
+  //flow sensor loop
+  unsigned long currentMillis = millis();
+  float sensorValue = analogRead(IRSensorOutput);  // Convert the analog reading 
+  float voltage = sensorValue * (5.0 / 1023.0);
+  /*if (currentMillis - previousMillis >= interval){
+    totalCount += count;
+    totalVol = (totalCount/27.00);
+    dpm = count * 6;
+    mlVol = (dpm/27.00); //conversion from drops per minute to ml per minute
+    count = 0; //reset count to 0
+    previousMillis = currentMillis;
+  }*/
+  
+  if (voltage > 0.1){
+    digitalWrite(10, HIGH);
+    if (!inPeak){
+      count ++;
+      inPeak = true;
+    }
+  } else {
+    digitalWrite(10, LOW);
+    inPeak = false;
+  }
+
+  totalVol = (count/17.50);
+  totalAdmin = (count/17.50);
+  
+  //Serial.println(dpm + " drips per minute");
+  Serial.println(voltage*1000);
+  //Serial.println("drip per minute:");
+/*------------------------------------*/
+  //servo & button chunk
+  buttonStateL = digitalRead(buttonPinL);
+  buttonStateR = digitalRead(buttonPinR);
+  buttonStateH = digitalRead(buttonPinH);
+  if (buttonStateR == HIGH) {
+    myStepper.step(stepsPerRev);
+    stepperPos += 1;
+  } else if (buttonStateR == HIGH) {
+    Serial.println("error");
+  
+  } else if (buttonStateL == HIGH) {
+    myStepper.step(-stepsPerRev);
+    stepperPos -= 1;
+  } else if (buttonStateL == HIGH) {
+    Serial.println("error");
+  } else if (totalVol >= 4.00){
+      myStepper.step(stepsPerRev * (19-stepperPos));
+      stepperPos = 19;
+      totalVol = 0;
+  } else if (buttonStateH == HIGH){
+    totalVol = 0;
+  }
+  //Serial.println(stepperPos); //Serial monitor print stepper motor position
+  /*------------------------------------*/
+  //lcd chunk
+  lcd.setCursor(10,0);
+  lcd.print(totalVol);
+  lcd.setCursor(12,1);
+  lcd.print(totalAdmin);
+  delay(1); // make sure the delay does not count 1 drop twice
+}
